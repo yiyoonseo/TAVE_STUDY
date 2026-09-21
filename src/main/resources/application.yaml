@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:shop
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create        # 실행할 때마다 테이블 새로 생성
+    properties:
+      hibernate:
+        format_sql: true
+        # default_batch_fetch_size: 100   # 해결 방법 3(배치 사이즈) 실험할 때만 주석 해제
+    open-in-view: false
+
+logging:
+  level:
+    org.hibernate.SQL: debug                          # 실행된 SQL 출력
+    org.hibernate.orm.jdbc.bind: trace                # 파라미터 값 출력 (선택)
