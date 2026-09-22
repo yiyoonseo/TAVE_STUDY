@@ -7,10 +7,10 @@ import com.example.nplus1.repository.OrderItemRepository;
 import com.example.nplus1.repository.OrderRepository;
 import com.example.nplus1.repository.ProductRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -74,13 +74,32 @@ public class Nplus1Runner implements CommandLineRunner {
         System.out.println("\n[2] 각 OrderItem의 Product 접근");
         int count = 1;
         for (OrderItem orderItem : orderItems) {
-            System.out.println("\n----------Product 조회 #" + count + "----------");
+            System.out.println("\n----------Product #" + count + "----------");
             String productName = orderItem.getProduct().getName(); // 실제 Product 정보 필요 (N)
             System.out.println(">>> 상품명: " + productName);
             count++;
         }
 
         System.out.println("\n============N+1 문제 테스트 종료============");
+
+        em.clear(); // fetch join 테스트를 위해 영속성 컨텍스트의 1차 캐시 비우기
+
+        // 1. fetch join
+        System.out.println("\n============Fetch Join 테스트 시작============");
+
+        System.out.println("\n[1] OrderItem + Product Fetch Join 조회");
+        List<OrderItem> fetchJoinItems = orderItemRepository.findAllWithProduct();
+
+        System.out.println("\n[2] 각 OrderItem의 Product 접근");
+        count = 1;
+        for (OrderItem orderItem : fetchJoinItems) {
+            System.out.println("\n----------Product #" + count + "----------");
+            String productName = orderItem.getProduct().getName();
+            System.out.println(">>> 상품명: " + productName);
+            count++;
+        }
+
+        System.out.println("\n============Fetch Join 테스트 종료============");
 
     }
 }
