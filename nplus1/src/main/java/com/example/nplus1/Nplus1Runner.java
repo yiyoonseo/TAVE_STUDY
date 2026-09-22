@@ -8,6 +8,7 @@ import com.example.nplus1.repository.OrderRepository;
 import com.example.nplus1.repository.ProductRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Session;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +64,7 @@ public class Nplus1Runner implements CommandLineRunner {
         orderItemRepository.saveAll(List.of(item1, item2, item3, item4, item5, item6));
 
         em.flush(); // 지금까지의 INSERT를 DB에 반영
-        em.clear(); // 1차 캐시를 완전히 비우기 (N+1 문제를 일으키키 위해)
+        em.clear(); // 1차 캐시를 완전히 비우기 (N+1 문제를 일으키기 위해)
 
         // N+1 발생시키기
         System.out.println("\n============N+1 문제 테스트 시작============");
@@ -100,6 +101,50 @@ public class Nplus1Runner implements CommandLineRunner {
         }
 
         System.out.println("\n============Fetch Join 테스트 종료============");
+
+        em.clear(); // EntityGraph 테스트를 위해 1차 캐시 비우기
+
+        // 2. @EntityGraph
+        System.out.println("\n============EntityGraph 테스트 시작============");
+
+        System.out.println("\n[1] OrderItem + Product EntityGraph 조회");
+        List<OrderItem> entityGraphItems = orderItemRepository.findAllWithEntityGraph();
+
+        System.out.println("\n[2] 각 OrderItem의 Product 접근");
+        count = 1;
+        for (OrderItem orderItem : entityGraphItems) {
+            System.out.println("\n----------Product #" + count + "----------");
+            String productName = orderItem.getProduct().getName();
+            System.out.println(">>> 상품명: " + productName);
+            count++;
+        }
+
+        System.out.println("\n============EntityGraph 테스트 종료============");
+
+        em.clear(); // batch size 테스트를 위해 1차 캐시 비우기
+
+        // 3. Batch Size
+        System.out.println("\n============Batch Size 테스트 시작============");
+
+        // 원래는 application.properties에서 전역적으로 batch size를 설정하지만, 현재 Runner 안에는 다른 테스트들이 함께 포함되어 있으므로 영향을 주지 않기 위해 따로 설정!
+        Session session = em.unwrap(Session.class); // Session은 Hibernate 객체 (cf. EntityManager는 JPA 표준 객체)
+        session.setFetchBatchSize(3); // 상품 6개를 가져오는 과정을 잘 보여주기 위해 3으로 설정
+
+        System.out.println("\n[1] OrderItem 전체 조회");
+        List<OrderItem> batchItems = orderItemRepository.findAll();
+
+        System.out.println("\n[2] 각 OrderItem의 Product 접근");
+        count = 1;
+
+        for (OrderItem orderItem : batchItems) {
+            System.out.println("\n----------Product #" + count + "----------");
+            String productName = orderItem.getProduct().getName();
+            System.out.println(">>> 상품명: " + productName);
+            count++;
+        }
+
+        System.out.println("\n============Batch Size 테스트 종료============");
+
 
     }
 }
